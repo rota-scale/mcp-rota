@@ -17,6 +17,12 @@ O MCP ROTA reúne os workflows, as skills e a régua de qualidade da [ROTA](http
 2. URL: `https://mcp.rotasaas.com/mcp`.
 3. **Entrar com o Google da ROTA** e **Permitir**.
 
+No Claude Code, opcional, para ver o ícone da ROTA em cada chamada:
+
+```
+/plugin install rota --marketplace rota-scale/mcp-rota
+```
+
 Só entra conta do domínio da ROTA. O acervo, as skills e a CLI ficam no repositório privado do time, `rota-scale/rota-workflows`.
 
-Versão atual: **0.2.0** (16/11/2026).
+Versão atual: **0.2.0** (16/11/2026). Licença do plugin: MIT.

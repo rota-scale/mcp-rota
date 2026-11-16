@@ -1,0 +1,8 @@
+{
+  "name": "rota",
+  "version": "0.2.0",
+  "description": "Mostra o ícone da ROTA em toda chamada de ferramenta do MCP ROTA (mcp.rotasaas.com).",
+  "author": { "name": "ROTA" },
+  "license": "MIT",
+  "repository": "https://github.com/rota-scale/mcp-rota"
+}
