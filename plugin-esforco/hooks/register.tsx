@@ -138,7 +138,12 @@ async function lerUso($: EngineInterface) {
     const topo = janelas[0]
     const novo: Limite | null = topo ? { pct: Math.round(topo.percentUsed), tipo: topo.kind === 'seven_day' ? 'semanal' : 'de 5 horas', volta: topo.resetsAt ?? null } : null
     await update($, limite, () => novo)
-    const pct = context.percent || (context.window ? ((context.tokens ?? 0) / context.window) * 100 : 0)
+    // A janela vem do app e pode ser a de 200k mesmo com o modelo de 1M (o painel do app mostrou 18% de 1M enquanto a faixa
+    // dizia 85%). Quando o id do modelo marca 1M, ou os tokens já passam de 200k, a janela é 1M.
+    const id = await $.session.model().catch(() => '')
+    const tokens = context.tokens ?? 0
+    const janela = /1m|(opus|sonnet|fable)-5/i.test(String(id)) || tokens > 200_000 ? Math.max(context.window ?? 0, 1_000_000) : context.window
+    const pct = janela ? (tokens / janela) * 100 : context.percent || 0
     if (Number.isFinite(pct) && pct > 0) await update($, contexto, () => Math.round(pct))
   } catch {
     // sem uso ainda
@@ -288,8 +293,8 @@ function seloMedido(g: Gasto | null, contextoPct: number | null, agora: number):
   const rel = g.turnoPeso >= 20_000 ? g.relMediana : null
   const frioAgora = g.cacheAte !== null && agora > g.cacheAte
   if (rel !== null && rel >= 2.5) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `este turno pesou ${rel.toFixed(1).replace('.', ',')}x o seu normal`, curto: 'turno caro' }
-  if (!g.reconstruiu && g.cachePct !== null && g.cachePct < 50 && ctx >= 20) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `só ${g.cachePct}% do contexto veio do cache, sem o cache ter vencido`, curto: 'cache perdido' }
-  if (ctx >= 85) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `contexto em ${ctx}%: cada mensagem relê tudo`, curto: 'contexto cheio' }
+  if (!g.reconstruiu && g.cachePct !== null && g.cachePct < 50 && ctx >= 20) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `só ${g.cachePct}% do contexto veio do cache: a conversa foi reescrita (compact, troca de modelo ou de ferramentas) e cada mensagem custa mais até o cache voltar`, curto: 'cache refeito' }
+  if (ctx >= 85) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `contexto em ${ctx}%: cada mensagem relê tudo`, curto: 'contexto alto' }
   if (frioAgora && ctx >= 20) return { selo: 'Atenção', cor: 'ambar', motivo: 'cache vencido: a próxima mensagem reescreve o contexto', curto: 'cache frio' }
   if (g.reconstruiu && ctx >= 20) return { selo: 'Atenção', cor: 'ambar', motivo: 'o cache venceu e foi reescrito neste turno', curto: 'cache reescrito' }
   if (ctx >= 70) return { selo: 'Atenção', cor: 'ambar', motivo: `contexto em ${ctx}%: perto da hora do handoff`, curto: 'contexto alto' }
@@ -306,7 +311,7 @@ function seloMedido(g: Gasto | null, contextoPct: number | null, agora: number):
 export function seloDoGasto(g: Gasto | null, contextoPct: number | null, agora: number): Selo | null {
   const base = seloMedido(g, contextoPct, agora)
   const j = g?.jev ?? null
-  if (!base || !j || j.conf < 0.7 || base.curto === 'contexto cheio' || base.curto === 'cache perdido') return base
+  if (!base || !j || j.conf < 0.7 || base.curto === 'contexto alto' || base.curto === 'cache refeito') return base
   const pct = `${Math.round(j.conf * 100)}%`
   if (j.nivel === 'economico') return { selo: 'Econômico', cor: 'lima', motivo: `Jev ${pct}: gasto justificado (${base.motivo})`, curto: '' }
   if (j.nivel === 'atencao') return { selo: 'Atenção', cor: 'ambar', motivo: `Jev ${pct}: ${base.motivo}`, curto: base.curto || 'Jev' }
@@ -509,7 +514,7 @@ export const register: Register = on => {
     if (!Svg) {
       return (
         <Box key="rota" flexDirection="row" gap={1} paddingX={1} borderStyle="round" borderColor={ligado ? T.bordaViva : T.borda}>
-          <Text color={ligado ? T.lima : T.rotulo} bold>{`ROTA ${palavra}`}</Text>
+          <Text color={ligado ? T.lima : T.rotulo} bold>{`ROTA esforço: ${palavra}`}</Text>
           {selo ? <Text color={corSelo} bold>{selo.selo}</Text> : null}
           {aviso ? <Text color={T[aviso.cor]}>{aviso.texto}</Text> : null}
           <Box flexGrow={1} />
@@ -530,6 +535,7 @@ export const register: Register = on => {
             <Box flexShrink={0} marginRight={1} alignItems="center">
               <Svg source={ligado ? MARCA_SVG : MARCA_OFF_SVG} alt="ROTA" width={18} height={18} />
             </Box>
+            {ligado && !julgando ? <Text color={T.rotulo}>{'Esforço '}</Text> : null}
             <Text key="rota-nivel" color={ligado ? T.lima : T.rotulo} bold>{palavra}</Text>
             {julgando ? (
               <Box flexShrink={0} marginLeft={1} alignItems="center">
