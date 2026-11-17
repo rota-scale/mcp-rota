@@ -57,6 +57,12 @@ export function nivelPedido(texto: string): Esforco | undefined {
     const mapa: Record<string, Esforco> = { baixo: 'low', medio: 'medium', alto: 'high', 'muito alto': 'xhigh', maximo: 'max', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' }
     return m[1] ? mapa[m[1]] : undefined
   }
+  // "deveria estar medio", "coloca em alto", "volta para medium": a pessoa diz o nível que quer.
+  const quer = /\b(?:deveria|devia|queria|coloca|bota|usa|muda|volta|deixa)\s+(?:de\s+)?(?:ser|ta|estar|em|pra|para|no|na)?\s*(baixo|medio|medium|alto|high|muito alto|xhigh|maximo|max)\b/.exec(t)
+  if (quer?.[1]) {
+    const nivel: Record<string, Esforco> = { baixo: 'low', medio: 'medium', medium: 'medium', alto: 'high', high: 'high', 'muito alto': 'xhigh', xhigh: 'xhigh', maximo: 'max', max: 'max' }
+    return nivel[quer[1]]
+  }
   if (/\b(ultrathink|pensa (muito|bem|com calma)|capricha|seja minucios[oa])\b/.test(t)) return 'xhigh'
   return undefined
 }
@@ -77,7 +83,7 @@ const JUIZ = `Você escolhe o esforço de raciocínio de um assistente agêntico
 
 Níveis: medium (trabalho normal, perguntas, ajustes pequenos), high (trabalho difícil, várias etapas, peça criativa, mudança em produção), xhigh (muito difícil: arquitetura, auditoria, pesquisa que cruza fontes), max (só quando pedirem o máximo). Nunca low.
 
-Julgue o tamanho do trabalho, não o tamanho da mensagem: "revisa o projeto inteiro" é grande. Se a mensagem responde a uma pergunta da última resposta do assistente ("sim", "a B", "pode"), julgue o trabalho que essa resposta dispara. Correção, reprovação ou acréscimo a um trabalho em andamento mantém pelo menos o esforço desse trabalho. Agradecimento sem pedido novo é medium.
+Julgue o tamanho do trabalho, não o tamanho da mensagem: "revisa o projeto inteiro" é grande. Se a mensagem responde a uma pergunta da última resposta do assistente ("sim", "a B", "pode"), julgue o trabalho que essa resposta dispara. Correção, reprovação ou acréscimo a um trabalho em andamento mantém pelo menos o esforço desse trabalho, MAS uma pergunta ou dúvida que não pede trabalho novo (por que, como, qual, será que) é medium, mesmo no meio de um trabalho pesado. Agradecimento sem pedido novo é medium.
 
 Responda só JSON: {"effort":"medium|high|xhigh|max","why":"até 6 palavras, em português"}`
 

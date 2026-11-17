@@ -7,6 +7,7 @@ const TABELA = {
   teto: 'max' as const,
   categorias: [
     { id: 'motion', nome: 'motion no After Effects', esforco: 'high' as const, criativo: true, padroes: ['\\b(after|motion|transic\\w*)\\b'], porque: 'régua alta' },
+    { id: 'pergunta', nome: 'pergunta', esforco: 'medium' as const, padroes: ['^(?!.*\\b(faz|fazer|cria|criar|corrig\\w*)\\b)(?:.{0,220}\\?|(?:por ?que|como|qual)\\b.{0,180})\\s*$'], porque: 'dúvida' },
     { id: 'conversa', nome: 'conversa', esforco: 'medium' as const, padroes: ['^(obrigad[oa]|valeu)\\b'], porque: 'piso' },
   ],
 }
@@ -21,6 +22,8 @@ test('nível pedido na mensagem vale, em português e em inglês', async () => {
   expect(nivelPedido('faz isso com esforço máximo')).toBe('max')
   expect(nivelPedido('effort: high por favor')).toBe('high')
   expect(nivelPedido('pensa com calma nessa')).toBe('xhigh')
+  expect(nivelPedido('Acho que deveria ta medium')).toBe('medium')
+  expect(nivelPedido('coloca em alto')).toBe('high')
   expect(nivelPedido('ajusta o motion')).toBe(undefined)
 })
 
@@ -30,7 +33,8 @@ test('continuação curta e tabela por texto sem acento', async () => {
   expect(semAcento('Transição')).toBe('transicao')
   expect(classificar('ajusta a transição no After', TABELA)?.id).toBe('motion')
   expect(classificar('valeu!', TABELA)?.id).toBe('conversa')
-  expect(classificar('como baixo o zoom', TABELA)).toBe(undefined)
+  expect(classificar('porque estamos usando o contexto alto? acho que deveria ta medium', TABELA)?.id).toBe('pergunta')
+  expect(classificar('cria o plugin e faz o deploy', TABELA)?.id).not.toBe('pergunta')
 })
 
 const FAIXA = {
