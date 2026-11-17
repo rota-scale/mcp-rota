@@ -1,0 +1,9 @@
+{
+  "name": "rota-esforco",
+  "version": "0.1.0",
+  "description": "Escolhe sozinho o esforço de raciocínio de cada mensagem e mostra, acima da caixa do chat, uma faixa animada de jogo de pixel com o nível, o contexto e se a sessão está gastando bem.",
+  "author": { "name": "ROTA" },
+  "license": "MIT",
+  "repository": "https://github.com/rota-scale/mcp-rota",
+  "types": "./types/index.d.ts"
+}

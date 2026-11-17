@@ -1,5 +1,18 @@
 {
   "name": "mcp-rota",
-  "owner": { "name": "ROTA" },
-  "plugins": [{ "name": "rota", "source": "./plugin", "description": "Ícone da ROTA em toda chamada do MCP ROTA no Claude Code." }]
+  "owner": {
+    "name": "ROTA"
+  },
+  "plugins": [
+    {
+      "name": "rota",
+      "source": "./plugin",
+      "description": "Ícone da ROTA em toda chamada do MCP ROTA no Claude Code."
+    },
+    {
+      "name": "rota-esforco",
+      "source": "./plugin-esforco",
+      "description": "Escolhe o esforço de cada mensagem e mostra uma faixa animada de jogo de pixel com o gasto da sessão."
+    }
+  ]
 }
