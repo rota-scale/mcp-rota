@@ -50,8 +50,9 @@ export function chaveSvg(ligada: boolean): string {
 // Grade fixa de células de 4 unidades, paleta de 4 tons por estado e tudo andando em degraus (steps), como num jogo de
 // 8 bits: uma onda diagonal de tons no mosaico, o chão rolando e um bonequinho de pixel correndo por cima.
 // Mesma técnica do effortless: um SVG constante (viewBox 360x30, recortado à direita) com o movimento em CSS.
-export const FUNDO_W = 440
-export const FUNDO_H = 64
+// Do tamanho da faixa (~46 px de altura): maior que isso o app recorta e só o topo do desenho aparece.
+export const FUNDO_W = 420
+export const FUNDO_H = 46
 export type Estado = 'economico' | 'atencao' | 'gastando' | 'decidindo'
 
 const sorte = (n: number) => {
@@ -63,22 +64,27 @@ type Paleta = readonly [string, string, string, string] // do mais escuro ao mai
 const CORPO = ['.111.', '11111', '1.1.1', '11111']
 const PERNA_A = ['.1.1.', '.1.1.']
 const PERNA_B = ['1...1', '1...1']
-function pixelsDe(linhas: string[], x0: number, y0: number, cor: string): string {
-  let out = ''
-  linhas.forEach((l, r) => [...l].forEach((c, k) => { if (c === '1') out += `<rect x="${x0 + k * 2}" y="${y0 + r * 2}" width="2" height="2" fill="${cor}"/>` }))
-  return out
+// Os desenhos saem em poucos <path> (um por classe de atraso, um por quadro do boneco) em vez de centenas de <rect>: o SVG fica
+// com menos de 9 mil caracteres. O app aceita bem o símbolo R (16 mil) mas o fundo anterior, com 20 mil, não aparecia.
+function caminhoDe(linhas: string[], x0: number, y0: number): string {
+  let d = ''
+  linhas.forEach((l, r) => [...l].forEach((c, k) => { if (c === '1') d += `M${x0 + k * 2} ${y0 + r * 2}h2v2h-2z` }))
+  return d
 }
 function bonequinho(claro: string): string {
-  const quadro = (pernas: string[], cls: string) => `<g class="${cls}">${pixelsDe([...CORPO, ...pernas], 1, 15, '#0B0C0E')}${pixelsDe([...CORPO, ...pernas], 0, 14, claro)}</g>`
+  const quadro = (pernas: string[], cls: string) => {
+    const f = [...CORPO, ...pernas]
+    return `<g class="${cls}"><path d="${caminhoDe(f, 1, 15)}" fill="#0B0C0E"/><path d="${caminhoDe(f, 0, 14)}" fill="${claro}"/></g>`
+  }
   return `${quadro(PERNA_A, 'pa')}${quadro(PERNA_B, 'pb')}`
 }
 function mosaico(): string {
-  let out = ''
+  const porClasse: string[] = Array.from({ length: 12 }, () => '')
   for (let c = 0; c < 60; c++) for (let r = 0; r < 6; r++) {
     if (sorte(c * 7 + r * 13 + 3) > 0.72) continue
-    out += `<rect class="c d${(c + r * 2) % 12}" x="${120 + c * 4}" y="${r * 4}" width="3" height="3"/>`
+    porClasse[(c + r * 2) % 12] += `M${120 + c * 4} ${r * 4}h3v3h-3z`
   }
-  return out
+  return porClasse.map((d, k) => `<path class="c d${k}" d="${d}"/>`).join('')
 }
 type Ritmo = { dur: number; corre: number; passoChao: number; quadros: number }
 const PALETAS: Record<Estado, { t: Paleta; r: Ritmo }> = {
@@ -122,3 +128,6 @@ export const COR_ESTADO: Record<Estado, { fundo: string; borda: string; texto: s
   gastando: { fundo: '#1A0D0A', borda: '#6A2418', texto: '#FF6A3D' },
   decidindo: { fundo: '#0B0C0E', borda: '#D1FE17', texto: '#D1FE17' },
 }
+
+/** Controle do teste no app: um fundo mínimo, com dois quadrados piscando. */
+export const FUNDO_CONTROLE = `<svg xmlns="http://www.w3.org/2000/svg" width="${FUNDO_W}" height="${FUNDO_H}" viewBox="0 0 360 30" preserveAspectRatio="xMaxYMid slice"><style>.q{animation:b 1s steps(2) infinite}@keyframes b{0%{opacity:1}50%{opacity:.2}}</style><rect width="360" height="30" fill="#D1FE17" fill-opacity=".25"/><rect class="q" x="200" y="8" width="20" height="14" fill="#D1FE17"/><rect class="q" x="260" y="8" width="20" height="14" fill="#D1FE17" style="animation-delay:.5s"/></svg>`

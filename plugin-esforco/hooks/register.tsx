@@ -6,7 +6,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Escolha, Esforco, Gasto, Limite } from '../types'
-import { anelSvg, chaveSvg, COR_ESTADO, fundoEm, FUNDO_H, FUNDO_W, PONTOS_SVG, PONTOS_W, T } from './arte'
+import { anelSvg, chaveSvg, COR_ESTADO, FUNDO_CONTROLE, fundoEm, FUNDO_H, FUNDO_W, PONTOS_SVG, PONTOS_W, T } from './arte'
 import type { Estado } from './arte'
 import { MARCA_OFF_SVG, MARCA_SVG } from './marca'
 
@@ -24,6 +24,7 @@ const contexto = atom({ plugin: 'rota-esforco', key: 'contexto' } as const, null
 const modelo = atom({ plugin: 'rota-esforco', key: 'modelo' } as const, null)
 const gasto = atom({ plugin: 'rota-esforco', key: 'gasto' } as const, null)
 const limite = atom({ plugin: 'rota-esforco', key: 'limite' } as const, null)
+const teste = atom({ plugin: 'rota-esforco', key: 'teste' } as const, false) // /rota-esforco teste mostra 3 faixas para diagnosticar o fundo
 
 type Categoria = { id: string; nome: string; esforco: Esforco; criativo?: boolean; padroes: string[]; porque: string }
 type Tabela = { piso: Esforco; teto: Esforco; categorias: Categoria[]; atualizado?: string }
@@ -345,6 +346,11 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
       return { text: 'ROTA esforço desligado: vale o esforço do app.' }
     }
+    if (arg === 'teste' || arg === 'teste off') {
+      await update($, teste, () => arg === 'teste')
+      $.ui.invalidate('ui.render')
+      return { text: arg === 'teste' ? 'Teste do fundo ligado: 3 faixas acima da caixa do chat. Mande um print. /rota-esforco teste off fecha.' : 'Teste do fundo fechado.' }
+    }
     if (arg === 'jev on' || arg === 'jev off') {
       const quer = arg === 'jev on'
       await $.store.set('jev', quer)
@@ -455,6 +461,24 @@ export const register: Register = on => {
     const els = $.ui.resolve(e)
     const { Box, Text, Button } = els
     const Svg = 'Svg' in els ? els.Svg : undefined
+    if (Svg && (await read($, teste))) {
+      const agoraT = await $.clock.now().catch(() => Date.now())
+      const tira = (chave: string, rotulo: string, fonte: string, largura: number, altura: number) => (
+        <Box key={chave} position="relative" flexDirection="row" alignItems="center" paddingX={1} overflow="hidden" backgroundColor={T.fundo} borderStyle="round" borderColor={T.bordaViva}>
+          <Box key={`${chave}-arte`} position="absolute" top={-1} right={0} bottom={-1}>
+            <Svg source={fonte} alt={`teste ${chave}`} width={largura} height={altura} />
+          </Box>
+          <Text color={T.lima} bold>{rotulo}</Text>
+        </Box>
+      )
+      return (
+        <Box key="rota-teste" flexDirection="column">
+          {tira('tb', 'A: 420x46, fonte fixa', fundoEm('atencao', 0), FUNDO_W, FUNDO_H)}
+          {tira('tc', 'B: 420x46, com fase do relógio', fundoEm('atencao', agoraT), FUNDO_W, FUNDO_H)}
+          {tira('td', 'C: controle mínimo (2 quadrados)', FUNDO_CONTROLE, FUNDO_W, FUNDO_H)}
+        </Box>
+      )
+    }
     const ligado = await read($, auto)
     const p = await read($, escolha)
     const julgando = await read($, decidindo)
@@ -492,7 +516,7 @@ export const register: Register = on => {
         backgroundColor={ligado ? cor.fundo : T.fundo} borderStyle="round" borderColor={ligado ? cor.borda : T.borda}>
         {ligado ? (
           <Box key={`rota-arte-${estado}`} position="absolute" top={-1} right={0} bottom={-1}>
-            <Svg source={fundoArte} alt="ROTA, fundo animado de jogo de pixel" width={FUNDO_W * 2} height={FUNDO_H * 2} />
+            <Svg source={fundoArte} alt="ROTA, fundo animado de jogo de pixel" width={FUNDO_W} height={FUNDO_H} />
           </Box>
         ) : null}
         <Box key="rota-palavras" position="relative" flexDirection="row" flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden" alignItems="center">

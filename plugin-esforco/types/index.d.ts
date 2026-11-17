@@ -20,6 +20,6 @@ export type Escolha = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'rota-esforco': { escolha: Escolha | null; decidindo: boolean; auto: boolean; contexto: number | null; modelo: string | null; gasto: Gasto | null; limite: Limite | null }
+    'rota-esforco': { escolha: Escolha | null; decidindo: boolean; auto: boolean; contexto: number | null; modelo: string | null; gasto: Gasto | null; limite: Limite | null; teste: boolean }
   }
 }
