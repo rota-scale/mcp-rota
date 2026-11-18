@@ -334,9 +334,11 @@ export function quandoVolta(iso: string | null, agora: number): string {
 type Selo = { selo: string; cor: 'lima' | 'ambar' | 'vermelho'; motivo: string; curto: string }
 /**
  * O selo mede DESPERDÍCIO, não consumo, e só com o que foi medido:
- * - turno caro: o peso do turno passou de 2,5 vezes a mediana dos seus turnos normais (precisa de 8 turnos de histórico);
- * - cache perdido: menos da metade do contexto veio do cache sem o cache ter vencido (algo o invalidou no meio da conversa);
- * - contexto cheio: cada requisição relê o contexto inteiro.
+ * - contexto cheio (85% ou mais): cada requisição relê o contexto inteiro. É o único aviso vermelho só pela medição;
+ * - turno caro: o peso do turno passou de 2,5 vezes a mediana dos seus turnos normais (precisa de 8 turnos de histórico). É
+ *   atenção, não desperdício: turno longo de trabalho pesa assim. Só vira vermelho se o Jev confirmar;
+ * - cache refeito: menos da metade do contexto veio do cache sem o cache ter vencido (compact, troca de modelo ou de
+ *   ferramentas reescrevem a conversa). É atenção até o cache voltar.
  * Atenção é o que ainda não desperdiçou mas vai: cache vencido com contexto grande, contexto alto, turno acima do normal.
  * O limite de uso NÃO entra aqui: é orçamento, não desperdício (ver alertaLimite).
  */
@@ -346,8 +348,8 @@ function seloMedido(g: Gasto | null, contextoPct: number | null, agora: number):
   // Turno pequeno nunca gera aviso por peso, por mais acima da mediana que esteja.
   const rel = g.turnoPeso >= 20_000 ? g.relMediana : null
   const frioAgora = g.cacheAte !== null && agora > g.cacheAte
-  if (rel !== null && rel >= 2.5) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `este turno pesou ${rel.toFixed(1).replace('.', ',')}x o seu normal`, curto: 'turno caro' }
-  if (!g.reconstruiu && g.cachePct !== null && g.cachePct < 50 && ctx >= 20) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `só ${g.cachePct}% do contexto veio do cache: a conversa foi reescrita (compact, troca de modelo ou de ferramentas) e cada mensagem custa mais até o cache voltar`, curto: 'cache refeito' }
+  if (rel !== null && rel >= 2.5) return { selo: 'Atenção', cor: 'ambar', motivo: `este turno pesou ${rel.toFixed(1).replace('.', ',')}x o seu normal; turno longo de trabalho pesa assim, só é desperdício se o Jev ou o contexto confirmarem`, curto: 'turno caro' }
+  if (!g.reconstruiu && g.cachePct !== null && g.cachePct < 50 && ctx >= 20) return { selo: 'Atenção', cor: 'ambar', motivo: `só ${g.cachePct}% do contexto veio do cache: a conversa foi reescrita (compact, troca de modelo ou de ferramentas) e cada mensagem custa mais até o cache voltar`, curto: 'cache refeito' }
   if (ctx >= 85) return { selo: 'Gastando à toa', cor: 'vermelho', motivo: `contexto em ${ctx}%: cada mensagem relê tudo`, curto: 'contexto alto' }
   if (frioAgora && ctx >= 20) return { selo: 'Atenção', cor: 'ambar', motivo: 'cache vencido: a próxima mensagem reescreve o contexto', curto: 'cache frio' }
   if (g.reconstruiu && ctx >= 20) return { selo: 'Atenção', cor: 'ambar', motivo: 'o cache venceu e foi reescrito neste turno', curto: 'cache reescrito' }
@@ -576,7 +578,9 @@ export const register: Register = on => {
     const estado: Estado = julgando ? 'decidindo' : selo?.cor === 'vermelho' ? 'gastando' : selo?.cor === 'ambar' ? 'atencao' : 'economico'
     const fundoArte = fundoEm(estado, agora)
     const cor = COR_ESTADO[estado]
-    const corSelo = selo ? T[selo.cor] : T.rotulo
+    // Parado (sem turno rodando) a faixa mostra o ÚLTIMO esforço e o ÚLTIMO turno, sem alarme: o aviso descreve algo que já acabou.
+    const ocioso = !e.props.isWorking && !julgando
+    const corSelo = selo ? (ocioso && selo.cor !== 'lima' ? T.sec : T[selo.cor]) : T.rotulo
     const alternar = async () => {
       const novo = !(await read($, auto))
       await update($, auto, () => novo)
@@ -607,8 +611,8 @@ export const register: Register = on => {
             <Box flexShrink={0} marginRight={1} alignItems="center">
               <Svg source={ligado ? MARCA_SVG : MARCA_OFF_SVG} alt="ROTA" width={18} height={18} />
             </Box>
-            {ligado && !julgando ? <Text color={T.rotulo}>{'Esforço '}</Text> : null}
-            <Text key="rota-nivel" color={ligado ? T.lima : T.rotulo} bold>{palavra}</Text>
+            {ligado && !julgando ? <Text color={T.rotulo}>{ocioso && p ? 'Último esforço ' : 'Esforço '}</Text> : null}
+            <Text key="rota-nivel" color={ligado ? (ocioso && p ? T.sec : T.lima) : T.rotulo} bold>{palavra}</Text>
             {julgando ? (
               <Box flexShrink={0} marginLeft={1} alignItems="center">
                 <Svg source={PONTOS_SVG} alt="decidindo" width={PONTOS_W} height={8} />
@@ -623,6 +627,7 @@ export const register: Register = on => {
           ) : null}
           {selo ? (
             <Box flexShrink={0} marginLeft={2} flexDirection="row" gap={1} alignItems="center">
+              {ocioso && selo.cor !== 'lima' ? <Text color={T.rotulo}>Último turno</Text> : null}
               <Text color={corSelo} bold>{selo.selo}</Text>
               {selo.cor !== 'lima' && selo.curto ? <Text color={T.rotulo}>{selo.curto}</Text> : null}
             </Box>
