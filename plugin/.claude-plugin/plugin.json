@@ -1,6 +1,6 @@
 {
   "name": "rota",
-  "version": "0.2.0",
+  "version": "0.2.10",
   "description": "Mostra o ícone da ROTA em toda chamada de ferramenta do MCP ROTA (mcp.rotasaas.com).",
   "author": { "name": "ROTA" },
   "license": "MIT",

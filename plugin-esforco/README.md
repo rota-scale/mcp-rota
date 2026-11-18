@@ -10,18 +10,25 @@ Mods são um recurso de acesso antecipado do Claude Code: confira se a sua vers�
 
 ## Como decide
 
-1. **Nível pedido na mensagem** ("esforço máximo", "effort high") vale sempre.
-2. **Continuação curta** ("ok", "sim") mantém o esforço que já estava.
-3. **Tabela de roteamento** pública, em `https://mcp.rotasaas.com/roteamento.json`: 11 categorias (motion, edição, som, 3D, design, geração paga, código, estudo e outras). Piso médio, trabalho criativo de régua alta em alto, estudo e auditoria em muito alto.
-4. **Haiku da própria sessão**, quando a mensagem não bate com nenhuma categoria.
+O mod decide **a cada mensagem que você envia**, e esse esforço vale para todos os passos do turno. Ordem:
+
+1. **Nível pedido na mensagem** ("esforço máximo", "coloca em médio") vale sempre.
+2. **Continuação curta** ("ok", "pode") mantém o esforço.
+3. **Disse que não serviu** ("não funcionou", "de novo"): sobe um nível, até xhigh. O esforço começa no menor que costuma resolver e sobe só quando falha.
+4. **Tabela de roteamento** pública, em `https://mcp.rotasaas.com/roteamento.json`. Categorias de tema (design, som, motion, edição, 3D, geração paga, estudo) só valem se a mensagem **pede trabalho** (cria, faz, edita, estuda): "o design está no ar" não puxa esforço alto. Código começa em médio; risco (segurança, segredo, apagar, dinheiro, produção) fica em high.
+5. **Comentário curto sem pedido de trabalho nem pergunta:** piso médio, sem gastar chamada.
+6. **Haiku da própria sessão**, para o que a tabela não cobre; dúvida fica em médio.
 
 O texto das suas mensagens fica na sua máquina. O modelo da conversa nunca é trocado: trocar reescreve o cache e custa mais do que economiza.
 
 ## A faixa
 
-Um fundo de Game Boy muda com o gasto: lima calmo (econômico), âmbar (atenção) e vermelho em disparada (gastando à toa). Enquanto decide, uma barra de pixels carrega.
+Um fundo de Game Boy muda com o gasto: lima calmo, âmbar (atenção) e vermelho em disparada.
 
-O selo mede **desperdício**, não consumo, comparando cada turno com o seu próprio histórico: turno bem acima do seu normal, cache perdido sem ter vencido, contexto cheio. O limite do seu plano aparece à parte, como aviso. `/rota-esforco status` mostra os detalhes.
+- **Esforço Alto** (lima): o turno está rodando com esse esforço. Parado, vira **Último esforço**, em cinza: é o do último turno, não uma decisão nova.
+- **Último turno Atenção · turno caro:** o turno que acabou pesou mais de 2,5x o seu normal. Turno longo de trabalho pesa assim; só é desperdício se o contexto passar de 85% (vermelho) ou o Jev confirmar.
+- O limite do seu plano aparece à parte, como aviso de orçamento.
+- **Eficiência:** `/rota-esforco eficiencia` mostra o custo por acerto de cada nível, com os dados só no seu computador, e só recomenda com 12 turnos por nível.
 
 ## Comandos
 

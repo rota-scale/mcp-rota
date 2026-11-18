@@ -26,8 +26,8 @@ const gasto = atom({ plugin: 'rota-esforco', key: 'gasto' } as const, null)
 const limite = atom({ plugin: 'rota-esforco', key: 'limite' } as const, null)
 const teste = atom({ plugin: 'rota-esforco', key: 'teste' } as const, false) // /rota-esforco teste mostra 3 faixas para diagnosticar o fundo
 
-type Categoria = { id: string; nome: string; esforco: Esforco; criativo?: boolean; repetida?: Esforco; padroes: string[]; porque: string }
-type Tabela = { piso: Esforco; teto: Esforco; categorias: Categoria[]; atualizado?: string }
+type Categoria = { id: string; nome: string; esforco: Esforco; criativo?: boolean; exigeAcao?: boolean; repetida?: Esforco; padroes: string[]; porque: string }
+type Tabela = { piso: Esforco; teto: Esforco; categorias: Categoria[]; atualizado?: string; verbos_de_trabalho?: string }
 
 // Reserva quando a tabela pública não responde e nada foi guardado: só o piso, e o Haiku decide.
 const RESERVA: Tabela = { piso: 'medium', teto: 'max', categorias: [] }
@@ -117,9 +117,20 @@ export function relatorioEficiencia(razao: Razao[], rotulo: (e: Esforco) => stri
 }
 
 /** A categoria da tabela pelo texto, ou nada. */
+export function temTrabalho(texto: string, t: Tabela): boolean {
+  if (!t.verbos_de_trabalho) return true // tabela sem a lista: não bloqueia nada
+  try {
+    return new RegExp(t.verbos_de_trabalho, 'i').test(semAcento(texto).slice(0, 4000))
+  } catch {
+    return true
+  }
+}
+
+/** A categoria da tabela pelo texto, ou nada. Categoria de tema (exigeAcao) só vale se a mensagem pede trabalho. */
 export function classificar(texto: string, t: Tabela): Categoria | undefined {
   const s = semAcento(texto).slice(0, 4000)
-  return t.categorias.find(c => c.padroes.some(p => {
+  const trabalho = temTrabalho(texto, t)
+  return t.categorias.find(c => (!c.exigeAcao || trabalho) && c.padroes.some(p => {
     try {
       return new RegExp(p, 'i').test(s)
     } catch {
@@ -499,6 +510,11 @@ export const register: Register = on => {
       const repetiu = Boolean(cat.repetida && antes?.categoria === cat.nome && antes.por !== 'pedido')
       const base = repetiu && cat.repetida ? maior(cat.esforco, cat.repetida) : cat.esforco
       await escolher($, { esforco: limitado(base, piso, tabela.teto), por: 'tabela', porque: repetiu ? `repetiu: ${cat.porque}, tente outra abordagem` : cat.porque, categoria: cat.nome })
+      return next(e)
+    }
+    // Comentário curto sem pedido de trabalho nem pergunta ("gostei do som", "ficou bom"): piso, sem gastar uma chamada ao juiz.
+    if (e.text.trim().length <= 80 && !e.text.includes('?') && !temTrabalho(e.text, tabela) && tabela.verbos_de_trabalho) {
+      await escolher($, { esforco: tabela.piso, por: 'piso', porque: 'sem pedido de trabalho', categoria: null })
       return next(e)
     }
     await update($, decidindo, () => true)
