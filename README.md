@@ -32,6 +32,16 @@ Primeira chamada de toda sessão: `rota_inicio` com o projeto e a tarefa (ex.: `
 /plugin install rota --marketplace rota-scale/mcp-rota
 ```
 
+## Plugin de esforço (público)
+
+O plugin `rota-esforco` escolhe sozinho o esforço de raciocínio de cada mensagem e mostra, acima da caixa do chat, uma faixa animada de jogo de pixel com o nível, o contexto e o gasto da sessão. Funciona para qualquer pessoa, sem conta da ROTA:
+
+```
+/plugin install rota-esforco --marketplace rota-scale/mcp-rota
+```
+
+O MCP ROTA, com a tabela completa e os workflows, abre só para quem tem acesso à conta da ROTA. Detalhes em [`plugin-esforco/README.md`](plugin-esforco/README.md).
+
 ## Ferramentas
 
 Todas são só leitura e vêm marcadas com `readOnlyHint` e título.
