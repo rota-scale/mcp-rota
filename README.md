@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" width="100%" alt="MCP ROTA v0.2.3: workflows, skills e régua de qualidade da ROTA para qualquer agente">
+  <img src="assets/hero.svg" width="100%" alt="MCP ROTA v0.2.10: workflows, skills e régua de qualidade da ROTA para qualquer agente">
 </p>
 
 # MCP ROTA
@@ -9,7 +9,7 @@ O MCP ROTA reúne os workflows, as skills e a régua de qualidade da [ROTA](http
 - **Contrato de início:** cada sessão começa com as regras que valem para aquele projeto e tarefa, em cerca de 3 mil tokens, sem reler arquivos.
 - **Régua com origem:** toda regra traz um nível de verificabilidade. V3 é veredito literal, V2 é medida. Regra viva é padrão observado, não lei.
 - **Casos reais:** só entra o que foi aprovado, com a frase literal de quem aprovou.
-- **Esforço por tarefa:** uma tabela de roteamento diz quanto raciocínio cada tipo de trabalho pede. Piso médio; trabalho criativo de régua alta fica em high.
+- **Esforço por tarefa:** uma tabela de roteamento diz quanto raciocínio cada tipo de trabalho pede. Piso médio; código começa em médio e sobe só quando falha; trabalho criativo de régua alta e risco (segurança, apagar, dinheiro, produção) ficam em high. Tema citado sem pedido de trabalho não sobe o esforço.
 - **Três portas, um contrato:** a CLI `rota`, o servidor MCP e as skills leem os mesmos dados.
 
 ## Conectar (time ROTA)
@@ -78,6 +78,13 @@ Enviado em 16/11/2026 como **MCP ROTA**, em revisão pela Anthropic. A ficha vai
 
 | Versão | Data | O que mudou |
 |---|---|---|
+| 0.2.10 | 18/11/2026 | o esforço só sobe com pedido de trabalho (cria, faz, edita, estuda), não por palavra de tema; comentário curto fica no piso médio; a regra vale em toda sessão conectada, com ou sem o plugin (`rota-esforco` 0.1.6) |
+| 0.2.9 | 18/11/2026 | faixa do `rota-esforco` 0.1.5: parada, mostra o último esforço e o último turno sem alarme; turno caro vira atenção, não desperdício |
+| 0.2.8 | 18/11/2026 | esforço medido: código começa em médio e sobe um nível só quando falha; livro-razão de eficiência guardado só no computador da pessoa (`rota-esforco` 0.1.4) |
+| 0.2.7 | 18/11/2026 | categoria `risco-alto` (segurança, segredo, apagar, dinheiro, produção) em high no mínimo; segunda reprovação seguida sobe para xhigh; teto público de 2 rodadas (`rota-esforco` 0.1.3) |
+| 0.2.6 | 17/11/2026 | categoria `pergunta`: dúvida sem pedido de trabalho fica em esforço médio |
+| 0.2.5 | 17/11/2026 | fundo animado do `rota-esforco` no tamanho da faixa, em SVG compacto e com texto alternativo |
+| 0.2.4 | 17/11/2026 | a tabela pública de roteamento traz só categoria, esforço, padrões e motivo genérico; entra o plugin público `rota-esforco` |
 | 0.2.3 | 17/11/2026 | `rota_rotear` e a tabela de roteamento de esforço (pública em `https://mcp.rotasaas.com/roteamento.json`); o contrato de início traz o esforço sugerido |
 | 0.2.2 | 16/11/2026 | respostas 58% menores (JSON compacto, resumo por padrão, paginação), erros que dizem como corrigir, OAuth só com login de pessoa |
 | 0.2.1 | 16/11/2026 | descrições das ferramentas dentro da política do Diretório; títulos e páginas públicas |
