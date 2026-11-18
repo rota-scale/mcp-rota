@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { alertaLimite, classificar, continuacao, estadoParaJev, limitado, medianaDe, nivelPedido, seloDoGasto, semAcento } from '../hooks/register'
+import { alertaLimite, classificar, continuacao, estadoParaJev, limitado, medianaDe, nivelPedido, relatorioEficiencia, retrabalho, seloDoGasto, semAcento, subirUm } from '../hooks/register'
 
 const TABELA = {
   piso: 'medium' as const,
@@ -87,4 +87,22 @@ test('Jev: só números saem; a opinião rebaixa aviso justificado mas não desf
   expect(seloDoGasto({ ...g, jev: { nivel: 'economico', conf: 0.5 } }, 40, 500)?.selo).toBe('Gastando à toa')
   expect(seloDoGasto({ ...g, relMediana: 1.0, jev: { nivel: 'economico', conf: 0.95 } }, 90, 500)?.selo).toBe('Gastando à toa')
   expect(seloDoGasto({ ...g, cachePct: 20, relMediana: 1.0, jev: { nivel: 'economico', conf: 0.95 } }, 40, 500)?.selo).toBe('Gastando à toa')
+})
+
+test('retrabalho sobe um nível só com mensagem curta de falha, e o relatório compara custo por acerto', async () => {
+  expect(retrabalho('não funcionou, deu erro de novo')).toBe(true)
+  expect(retrabalho('ainda errado')).toBe(true)
+  expect(retrabalho('cria o plugin e faz o deploy')).toBe(false)
+  expect(retrabalho(`o botão ficou errado ${'x'.repeat(300)}`)).toBe(false)
+  expect(subirUm('medium')).toBe('high')
+  expect(subirUm('xhigh')).toBe('xhigh')
+  expect(relatorioEficiencia([])).toContain('ainda sem turnos')
+  const razao = [
+    ...Array.from({ length: 12 }, () => ({ c: 'codigo', e: 'medium' as const, p: 100_000 })),
+    ...Array.from({ length: 12 }, (_, i) => ({ c: 'codigo', e: 'high' as const, p: 250_000, ...(i < 1 ? { r: true as const } : {}) })),
+  ]
+  const r = relatorioEficiencia(razao)
+  expect(r).toContain('codigo · medium: 12 turnos, retrabalho 0%')
+  expect(r).toContain('o mais barato por acerto é medium')
+  expect(relatorioEficiencia(razao.slice(0, 5))).toContain('ainda sem base')
 })

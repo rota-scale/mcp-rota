@@ -13,7 +13,7 @@ export type Gasto = {
 export type Limite = { pct: number; tipo: string; volta: string | null }
 export type Escolha = {
   esforco: Esforco
-  por: 'tabela' | 'haiku' | 'pedido' | 'mantido' | 'piso'
+  por: 'tabela' | 'haiku' | 'pedido' | 'mantido' | 'piso' | 'escalada'
   porque: string
   categoria: string | null
 }
