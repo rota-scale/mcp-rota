@@ -67,6 +67,55 @@ export function nivelPedido(texto: string): Esforco | undefined {
   return undefined
 }
 
+/**
+ * A mensagem diz que o resultado anterior não serviu ("não funcionou", "de novo", "ainda errado"). Só mensagens curtas:
+ * numa mensagem longa essas palavras costumam descrever outra coisa. É o sinal de falha que sobe o esforço um nível.
+ */
+export function retrabalho(texto: string): boolean {
+  const t = semAcento(texto).trim()
+  if (t.length === 0 || t.length > 280) return false
+  return /\b(nao (era|e) isso|nao funcionou|nao deu certo|nao resolveu|ainda (nao|esta errado|ta errado|com erro|quebrad\w*)|de novo|errado|errada|deu erro|continua (com )?(erro|quebrad\w*|errad\w*)|voltou o erro|quebrou|falhou|ja falei|nao gostei|ta feio|ficou pior|piorou|reprov\w*)\b/.test(t)
+}
+export function subirUm(e: Esforco): Esforco {
+  return ESFORCOS[Math.min(idx(e) + 1, idx('xhigh'))] ?? e
+}
+
+type Razao = { c: string | null; e: Esforco; p: number; r?: true }
+const MIN_FAIXA = 12
+/** Custo por acerto de cada (categoria, esforço): peso gasto dividido pelos turnos que não precisaram ser refeitos. */
+export function relatorioEficiencia(razao: Razao[], rotulo: (e: Esforco) => string = e => e): string {
+  if (razao.length === 0) return 'Eficiência: ainda sem turnos medidos. O livro-razão começa a encher a partir de agora.'
+  const faixas = new Map<string, Razao[]>()
+  for (const t of razao) {
+    const k = `${t.c ?? 'sem categoria'}|${t.e}`
+    faixas.set(k, [...(faixas.get(k) ?? []), t])
+  }
+  const linhas: string[] = []
+  const porCat = new Map<string, { e: Esforco; n: number; custo: number }[]>()
+  for (const [k, v] of [...faixas].sort((a, b) => b[1].length - a[1].length)) {
+    const [cat = '', e = 'medium'] = k.split('|')
+    const falhas = v.filter(t => t.r).length
+    const acertos = v.length - falhas
+    const soma = v.reduce((a, t) => a + t.p, 0)
+    const custo = acertos > 0 ? soma / acertos : Infinity
+    linhas.push(`${cat} · ${rotulo(e as Esforco)}: ${v.length} turnos, retrabalho ${Math.round((falhas / v.length) * 100)}%, ${Number.isFinite(custo) ? ktok(custo) : 'sem acerto'} por acerto`)
+    porCat.set(cat, [...(porCat.get(cat) ?? []), { e: e as Esforco, n: v.length, custo }])
+  }
+  const leitura: string[] = []
+  for (const [cat, fs] of porCat) {
+    const aptas = fs.filter(f => f.n >= MIN_FAIXA && Number.isFinite(f.custo))
+    if (aptas.length >= 2) {
+      const melhor = [...aptas].sort((a, b) => a.custo - b.custo)[0]
+      if (melhor) leitura.push(`${cat}: o mais barato por acerto é ${rotulo(melhor.e)}`)
+    }
+  }
+  return [
+    `Eficiência (${razao.length} turnos medidos; retrabalho = a mensagem seguinte disse que não serviu):`,
+    ...linhas.slice(0, 10),
+    leitura.length ? `Leitura: ${leitura.join('; ')}.` : `Leitura: ainda sem base. Comparar níveis pede ${MIN_FAIXA} turnos por nível na mesma categoria.`,
+  ].join('\n')
+}
+
 /** A categoria da tabela pelo texto, ou nada. */
 export function classificar(texto: string, t: Tabela): Categoria | undefined {
   const s = semAcento(texto).slice(0, 4000)
@@ -267,6 +316,11 @@ async function fecharTurno($: EngineInterface) {
     if (jev) await update($, gasto, old => (old ? { ...old, jev } : old))
   }
   await $.store.set('hist', [...antes, { p: Math.round(g.turnoPeso), c: cat }].slice(-60))
+  const escolhido = await read($, escolha)
+  if (escolhido) {
+    const razao = ((await $.store.get('razao').catch(() => [])) as Razao[] | undefined) ?? []
+    await $.store.set('razao', [...razao, { c: cat, e: escolhido.esforco, p: Math.round(g.turnoPeso) }].slice(-400))
+  }
 }
 
 /** O selo do gasto: econômico, atenção ou gastando à toa, com o motivo que importa agora. */
@@ -344,7 +398,7 @@ export const register: Register = on => {
     void lerUso($)
     const tique = () => $.clock.after(15_000, () => { $.ui.invalidate('ui.render'); tique() })
     tique()
-    void $.command.register({ name: 'rota-esforco', description: 'ROTA esforço: auto, off, status, ou um nível (medio, alto, maximo).' }).catch(() => undefined)
+    void $.command.register({ name: 'rota-esforco', description: 'ROTA esforço: auto, off, status, eficiencia, ou um nível (medio, alto, maximo).' }).catch(() => undefined)
     return next(e)
   })
 
@@ -361,6 +415,10 @@ export const register: Register = on => {
       await update($, teste, () => arg === 'teste')
       $.ui.invalidate('ui.render')
       return { text: arg === 'teste' ? 'Teste do fundo ligado: 3 faixas acima da caixa do chat. Mande um print. /rota-esforco teste off fecha.' : 'Teste do fundo fechado.' }
+    }
+    if (arg === 'eficiencia' || arg === 'eficiência') {
+      const razao = ((await $.store.get('razao').catch(() => [])) as Razao[] | undefined) ?? []
+      return { text: relatorioEficiencia(razao, x => ROTULO[x] ?? x) }
     }
     if (arg === 'jev on' || arg === 'jev off') {
       const quer = arg === 'jev on'
@@ -419,6 +477,17 @@ export const register: Register = on => {
     if (antes && continuacao(e.text) && !e.attachments?.length && !ctx.slice(-400).includes('?')) {
       await escolher($, { ...antes, por: 'mantido', porque: 'continuação' })
       return next(e)
+    }
+    // Falha: a mensagem diz que o resultado anterior não serviu. Marca o turno anterior como retrabalho no livro-razão
+    // e sobe um nível (até xhigh). Voltar ao esforço da tabela é automático na mensagem seguinte.
+    if (retrabalho(e.text)) {
+      const razao = ((await $.store.get('razao').catch(() => [])) as Razao[] | undefined) ?? []
+      const ultimo = razao[razao.length - 1]
+      if (ultimo && !ultimo.r) await $.store.set('razao', [...razao.slice(0, -1), { ...ultimo, r: true }])
+      if (antes && antes.por !== 'pedido') {
+        await escolher($, { esforco: limitado(subirUm(antes.esforco), tabela.piso, tabela.teto), por: 'escalada', porque: 'não serviu: sobe um nível', categoria: antes.categoria })
+        return next(e)
+      }
     }
     await carregarTabela($)
     const cat = classificar(e.text, tabela)
