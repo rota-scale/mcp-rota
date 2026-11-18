@@ -1,6 +1,6 @@
 {
   "name": "rota-esforco",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "ROTA: esforço de raciocínio escolhido sozinho para cada mensagem, pela tabela de roteamento do MCP ROTA, com o Haiku de reserva. Piso médio.",
   "types": "./types/index.d.ts"
 }
