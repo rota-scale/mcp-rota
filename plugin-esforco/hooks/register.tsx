@@ -26,7 +26,7 @@ const gasto = atom({ plugin: 'rota-esforco', key: 'gasto' } as const, null)
 const limite = atom({ plugin: 'rota-esforco', key: 'limite' } as const, null)
 const teste = atom({ plugin: 'rota-esforco', key: 'teste' } as const, false) // /rota-esforco teste mostra 3 faixas para diagnosticar o fundo
 
-type Categoria = { id: string; nome: string; esforco: Esforco; criativo?: boolean; padroes: string[]; porque: string }
+type Categoria = { id: string; nome: string; esforco: Esforco; criativo?: boolean; repetida?: Esforco; padroes: string[]; porque: string }
 type Tabela = { piso: Esforco; teto: Esforco; categorias: Categoria[]; atualizado?: string }
 
 // Reserva quando a tabela pública não responde e nada foi guardado: só o piso, e o Haiku decide.
@@ -424,7 +424,10 @@ export const register: Register = on => {
     const cat = classificar(e.text, tabela)
     if (cat) {
       const piso = cat.criativo ? maior(tabela.piso, 'high') : tabela.piso
-      await escolher($, { esforco: limitado(cat.esforco, piso, tabela.teto), por: 'tabela', porque: cat.porque, categoria: cat.nome })
+      // Mesma categoria duas mensagens seguidas (ex.: segunda reprovação da peça): sobe e pede nova abordagem, não o mesmo refinamento.
+      const repetiu = Boolean(cat.repetida && antes?.categoria === cat.nome && antes.por !== 'pedido')
+      const base = repetiu && cat.repetida ? maior(cat.esforco, cat.repetida) : cat.esforco
+      await escolher($, { esforco: limitado(base, piso, tabela.teto), por: 'tabela', porque: repetiu ? `repetiu: ${cat.porque}, tente outra abordagem` : cat.porque, categoria: cat.nome })
       return next(e)
     }
     await update($, decidindo, () => true)
@@ -432,7 +435,7 @@ export const register: Register = on => {
     try {
       const v = await perguntarHaiku($, e.text, antes?.esforco ?? null)
       if (v) await escolher($, { esforco: limitado(v.esforco, tabela.piso, tabela.teto), por: 'haiku', porque: v.porque, categoria: null })
-      else await escolher($, { esforco: maior(antes?.esforco ?? tabela.piso, tabela.piso), por: 'piso', porque: 'juiz sem resposta', categoria: null })
+      else await escolher($, { esforco: maior(antes?.esforco ?? tabela.piso, tabela.piso), por: 'piso', porque: tabela.categorias.length ? 'juiz sem resposta' : 'tabela e juiz sem resposta', categoria: null })
     } finally {
       await update($, decidindo, () => false)
       $.ui.invalidate('ui.render')

@@ -8,6 +8,7 @@ const TABELA = {
   categorias: [
     { id: 'motion', nome: 'motion no After Effects', esforco: 'high' as const, criativo: true, padroes: ['\\b(after|motion|transic\\w*)\\b'], porque: 'régua alta' },
     { id: 'pergunta', nome: 'pergunta', esforco: 'medium' as const, padroes: ['^(?!.*\\b(faz|fazer|cria|criar|corrig\\w*)\\b)(?:.{0,220}\\?|(?:por ?que|como|qual)\\b.{0,180})\\s*$'], porque: 'dúvida' },
+    { id: 'risco-alto', nome: 'risco alto', esforco: 'high' as const, padroes: ['\\b(senha|apagar|em producao|pagamento)\\b'], porque: 'sensível' },
     { id: 'conversa', nome: 'conversa', esforco: 'medium' as const, padroes: ['^(obrigad[oa]|valeu)\\b'], porque: 'piso' },
   ],
 }
@@ -35,6 +36,7 @@ test('continuação curta e tabela por texto sem acento', async () => {
   expect(classificar('valeu!', TABELA)?.id).toBe('conversa')
   expect(classificar('porque estamos usando o contexto alto? acho que deveria ta medium', TABELA)?.id).toBe('pergunta')
   expect(classificar('cria o plugin e faz o deploy', TABELA)?.id).not.toBe('pergunta')
+  expect(classificar('apagar a pasta antiga do banco', TABELA)?.id).toBe('risco-alto')
 })
 
 const FAIXA = {
